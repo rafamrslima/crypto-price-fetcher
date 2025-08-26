@@ -30,12 +30,12 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
 
-	input := strings.TrimSpace(scanner.Text())
-	coins := strings.Split(input, ",")
-	validCoins := make([]string, len(coins))
+	coins := strings.Split(scanner.Text(), ",")
+	validCoins := []string{}
 
 	for _, coin := range coins {
 		coinIsAvailable := false
+		coin = strings.ReplaceAll(coin, " ", "")
 		for _, availableCoin := range allCoins {
 			if strings.ToLower(coin) == availableCoin {
 				coinIsAvailable = true
@@ -56,7 +56,7 @@ func main() {
 		return
 	}
 
-	fmt.Println(data)
+	printPrices(data)
 }
 
 func getPrices(coinsToFetch []string) ([]Coin, error) {
@@ -100,4 +100,14 @@ func fetchPrice(coin string) (float64, error) {
 	}
 
 	return result[coin]["usd"], nil
+}
+
+func printPrices(prices []Coin) {
+	fmt.Println("+-------------+-----------+")
+	fmt.Println("| Coin        | USD       |")
+	fmt.Println("+-------------+-----------+")
+	for _, p := range prices {
+		fmt.Printf("| %-11s | %.2f |\n", p.Coin, p.Usd)
+	}
+	fmt.Println("+-------------+-----------+")
 }
