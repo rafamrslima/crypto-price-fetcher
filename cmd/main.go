@@ -10,20 +10,16 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gocarina/gocsv"
+	"github.com/rafamrslima/crypto-fetcher/internal/csvHelper"
+	"github.com/rafamrslima/crypto-fetcher/internal/jsonHelper"
+	"github.com/rafamrslima/crypto-fetcher/internal/models"
 )
-
-type Coin struct {
-	Coin string
-	Usd  float64
-}
 
 const URL string = "https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd"
 
 var allCoins = []string{"bitcoin", "ethereum", "cardano", "chainlink", "solana", "polkadot"}
 
 func main() {
-
 	coins := getCoinsUserInput()
 	validCoins := validateCoinsInput(coins)
 	data, err := getPrices(validCoins)
@@ -72,21 +68,21 @@ func validateCoinsInput(coins []string) []string {
 	return validCoins
 }
 
-func getPrices(coinsToFetch []string) ([]Coin, error) {
+func getPrices(coinsToFetch []string) ([]models.Coin, error) {
 	var wg sync.WaitGroup
-	coinsPrices := make([]Coin, len(coinsToFetch))
+	coinsPrices := make([]models.Coin, len(coinsToFetch))
 	wg.Add(len(coinsToFetch))
 
 	for i, coin := range coinsToFetch {
-		go func() {
+		go func(i int) {
 			price, err := fetchPrice(coin)
 			if err != nil {
 				fmt.Printf("Error fetching %s: %v\n", coin, err)
 				return
 			}
-			coinsPrices[i] = Coin{Coin: coin, Usd: price}
+			coinsPrices[i] = models.Coin{Coin: coin, Usd: price}
 			wg.Done()
-		}()
+		}(i)
 	}
 
 	wg.Wait()
@@ -118,7 +114,7 @@ func fetchPrice(coin string) (float64, error) {
 	return result[coin]["usd"], nil
 }
 
-func printPrices(prices []Coin) {
+func printPrices(prices []models.Coin) {
 	fmt.Println("+-------------+-----------+")
 	fmt.Println("| Coin        | USD       |")
 	fmt.Println("+-------------+-----------+")
@@ -128,54 +124,15 @@ func printPrices(prices []Coin) {
 	fmt.Println("+-------------+-----------+")
 }
 
-func saveToFile(data []Coin) {
-	fmt.Print("If you want to save the prices, enter 'csv' or 'json'. otherwise write 'exit' to finish the program. ")
+func saveToFile(data []models.Coin) {
+	fmt.Print("If you want to save the prices, enter 'csv' or 'json'. Otherwise write 'exit' to finish the program. ")
 	scannerExport := bufio.NewScanner(os.Stdin)
 	scannerExport.Scan()
 	input := scannerExport.Text()
 
 	if strings.ToLower(input) == "csv" {
-		generateCSV(data)
+		csvHelper.Generate(data)
 	} else if strings.ToLower(input) == "json" {
-		generateJson(data)
+		jsonHelper.Generate(data)
 	}
-}
-
-func generateCSV(data []Coin) {
-	file, err := os.Create("data.csv")
-	if err != nil {
-		fmt.Println("Error to generate csv file.", err)
-		return
-	}
-	defer file.Close()
-
-	if err := gocsv.MarshalFile(&data, file); err != nil {
-		fmt.Println("Error to generate csv file.", err)
-		return
-	}
-
-	fmt.Println("CSV file saved successfully!")
-}
-
-func generateJson(data []Coin) {
-	jsonBytes, err := json.Marshal(data)
-	if err != nil {
-		fmt.Println("Error to convert data to json.", err)
-		return
-	}
-
-	file, err := os.Create("data.json")
-	if err != nil {
-		fmt.Println("Error creating json file.", err)
-		return
-	}
-	defer file.Close()
-
-	_, err = file.Write(jsonBytes)
-	if err != nil {
-		fmt.Println("Error writing to json file.", err)
-		return
-	}
-
-	fmt.Println("JSON file saved successfully!")
 }
