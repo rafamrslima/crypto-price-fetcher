@@ -2,20 +2,16 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
+	"log"
 	"os"
 	"strings"
 	"sync"
 
-	"github.com/rafamrslima/crypto-fetcher/internal/csvHelper"
-	"github.com/rafamrslima/crypto-fetcher/internal/jsonHelper"
+	"github.com/rafamrslima/crypto-fetcher/internal/fileHelper"
+	"github.com/rafamrslima/crypto-fetcher/internal/infra"
 	"github.com/rafamrslima/crypto-fetcher/internal/models"
 )
-
-const URL string = "https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd"
 
 var allCoins = []string{"bitcoin", "ethereum", "cardano", "chainlink", "solana", "polkadot"}
 
@@ -75,9 +71,9 @@ func getPrices(coinsToFetch []string) ([]models.Coin, error) {
 
 	for i, coin := range coinsToFetch {
 		go func(i int) {
-			price, err := fetchPrice(coin)
+			price, err := infra.FetchPrice(coin)
 			if err != nil {
-				fmt.Printf("Error fetching %s: %v\n", coin, err)
+				log.Printf("Error fetching %s: %v\n", coin, err)
 				return
 			}
 			coinsPrices[i] = models.Coin{Coin: coin, Usd: price}
@@ -87,31 +83,6 @@ func getPrices(coinsToFetch []string) ([]models.Coin, error) {
 
 	wg.Wait()
 	return coinsPrices, nil
-}
-
-func fetchPrice(coin string) (float64, error) {
-	resp, err := http.Get(URL + "&ids=" + coin)
-
-	if err != nil {
-		fmt.Println("error: ", err)
-		return 0, err
-	}
-
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-
-	if err != nil {
-		fmt.Println("error: ", err)
-		return 0, err
-	}
-
-	var result map[string]map[string]float64
-	if err := json.Unmarshal(body, &result); err != nil {
-		fmt.Println("error: ", err)
-		return 0, err
-	}
-
-	return result[coin]["usd"], nil
 }
 
 func printPrices(prices []models.Coin) {
@@ -131,8 +102,8 @@ func saveToFile(data []models.Coin) {
 	input := scannerExport.Text()
 
 	if strings.ToLower(input) == "csv" {
-		csvHelper.Generate(data)
+		fileHelper.GenerateCsv(data)
 	} else if strings.ToLower(input) == "json" {
-		jsonHelper.Generate(data)
+		fileHelper.GenerateJson(data)
 	}
 }

@@ -1,23 +1,24 @@
-package csvHelper
+package fileHelper
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/gocarina/gocsv"
 	"github.com/rafamrslima/crypto-fetcher/internal/models"
 )
 
-func Generate(data []models.Coin) {
+func GenerateCsv(data []models.Coin) {
 	file, err := os.Create("output/data.csv")
 	if err != nil {
-		fmt.Println("Error to generate csv file.", err)
+		log.Println("Error to generate csv file.", err)
 		return
 	}
 	defer file.Close()
 
 	if err := gocsv.MarshalFile(&data, file); err != nil {
-		fmt.Println("Error to generate csv file.", err)
+		log.Println("Error to generate csv file.", err)
 		return
 	}
 
